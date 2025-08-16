@@ -1,0 +1,1 @@
+Examine the codebase and think hard about how to refactor it to improve separation of concerns and DRY-ness. For example, extracting shared types into their own file, extracting reusable functions, and extracting reusable chunks of UI code into components. Do not make any functional changes in the process.

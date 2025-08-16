@@ -1,0 +1,21 @@
+
+name: publish-release
+run-name: Publish Release
+on:
+  push:
+    branches: ["main"]
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - uses: actions/checkout@v4
+      - run: "bun ci"
+      - run: "bun run bakery build"
+      - run: "bun run bakery release"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

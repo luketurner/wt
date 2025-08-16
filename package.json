@@ -1,0 +1,16 @@
+{
+  "name": "wt",
+  "module": "src/index.ts",
+  "type": "module",
+  "private": true,
+  "bin": {
+    "wt": "./bin/wt"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "bakery": "git+https://github.com/luketurner/bakery.git"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}
