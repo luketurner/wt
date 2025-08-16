@@ -4,52 +4,11 @@ import { $, spawn } from "bun";
 import { existsSync, writeFileSync } from "fs";
 import { createConnection } from "net";
 import { humanId } from "human-id";
+import { Command } from "commander";
 
 // AIDEV-NOTE: CLI script for creating git worktrees and opening Claude Code in them
 
 const SCRIPT_NAME = "worktree";
-
-function showUsage() {
-  console.log(`Usage: ${SCRIPT_NAME} <command> [label]`);
-  console.log("");
-  console.log("Commands:");
-  console.log("  new [label]       Create a new worktree and open Claude Code");
-  console.log(
-    "                    If no label provided, generates one automatically",
-  );
-  console.log("  open <label>      Open an existing worktree in zellij");
-  console.log(
-    "                    Attaches to existing session or creates new one",
-  );
-  console.log("  cleanup [label]   Remove worktree and associated branch");
-  console.log(
-    "                    If no label provided, cleans up all worktrees",
-  );
-  console.log("");
-  console.log("Examples:");
-  console.log(`  ${SCRIPT_NAME} new`);
-  console.log(
-    "  # Creates worktree with auto-generated label like 'funny-hippo-42'",
-  );
-  console.log("");
-  console.log(`  ${SCRIPT_NAME} new feature-auth`);
-  console.log(
-    "  # Creates /workspaces/worktree-feature-auth and opens Claude Code",
-  );
-  console.log("");
-  console.log(`  ${SCRIPT_NAME} open feature-auth`);
-  console.log(
-    "  # Opens existing worktree in zellij (attaches or creates session)",
-  );
-  console.log("");
-  console.log(`  ${SCRIPT_NAME} cleanup feature-auth`);
-  console.log(
-    "  # Removes specific worktree and branch (prompts for merge if needed)",
-  );
-  console.log("");
-  console.log(`  ${SCRIPT_NAME} cleanup`);
-  console.log("  # Removes all worktrees and branches (prompts for each)");
-}
 
 function showError(message: string) {
   console.error(`Error: ${message}`);
@@ -130,8 +89,8 @@ async function getAllWorktrees(): Promise<string[]> {
     const worktrees: string[] = [];
 
     for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
-      if (line.startsWith("worktree /workspaces/worktree-")) {
+      const line = lines[i]?.trim();
+      if (line && line.startsWith("worktree /workspaces/worktree-")) {
         const worktreePath = line.substring("worktree ".length);
         const label = worktreePath.split("/workspaces/worktree-")[1];
         if (label && label !== "") {
@@ -288,59 +247,11 @@ async function openWorktree(label: string) {
   }
 }
 
-async function main() {
-  const args = process.argv.slice(2);
-
-  if (args.length === 0) {
-    showUsage();
-    process.exit(1);
-  }
-
-  if (args[0] === "--help" || args[0] === "-h") {
-    showUsage();
-    process.exit(0);
-  }
-
-  const command = args[0];
-  let label = args[1];
-
-  if (!["new", "open", "cleanup"].includes(command)) {
-    showError("Command must be 'new', 'open', or 'cleanup'");
-  }
-
-  // Handle cleanup command
-  if (command === "cleanup") {
-    if (!label) {
-      // Cleanup all worktrees
-      await cleanupAllWorktrees();
-      return;
-    } else {
-      // Cleanup specific worktree
-      if (!/^[a-zA-Z0-9_-]+$/.test(label)) {
-        showError(
-          "Label must contain only letters, numbers, underscores, and hyphens",
-        );
-      }
-      await cleanupWorktree(label);
-      return;
-    }
-  }
-
-  // Handle open command
-  if (command === "open") {
-    if (!label) {
-      showError("Label is required for 'open' command");
-    }
-    if (!/^[a-zA-Z0-9_-]+$/.test(label)) {
-      showError(
-        "Label must contain only letters, numbers, underscores, and hyphens",
-      );
-    }
-    await openWorktree(label);
-    return;
-  }
-
-  // For 'new' command, generate label if not provided
+/**
+ * Create a new worktree
+ */
+async function createWorktree(label?: string) {
+  // Generate label if not provided
   if (!label) {
     label = humanId({
       separator: "-",
@@ -355,8 +266,6 @@ async function main() {
       "Label must contain only letters, numbers, underscores, and hyphens",
     );
   }
-
-  // Continue with new command (existing logic)
 
   const worktreePath = `/workspaces/worktree-${label}`;
   const envPath = `${worktreePath}/.env.local`;
@@ -435,8 +344,85 @@ async function main() {
   }
 }
 
-// Run the script
-main().catch((error) => {
-  console.error("Unexpected error:", error);
+// Create the CLI program
+const program = new Command();
+
+program
+  .name(SCRIPT_NAME)
+  .description(
+    "CLI tool for creating git worktrees and opening Claude Code in them",
+  )
+  .version("1.0.0");
+
+// New command
+program
+  .command("new [label]")
+  .description("Create a new worktree and open Claude Code")
+  .helpOption("-h, --help", "Display help for command")
+  .action(async (label?: string) => {
+    await createWorktree(label);
+  });
+
+// Open command
+program
+  .command("open <label>")
+  .description("Open an existing worktree in zellij")
+  .helpOption("-h, --help", "Display help for command")
+  .action(async (label: string) => {
+    if (!/^[a-zA-Z0-9_-]+$/.test(label)) {
+      showError(
+        "Label must contain only letters, numbers, underscores, and hyphens",
+      );
+    }
+    await openWorktree(label);
+  });
+
+// Cleanup command
+program
+  .command("cleanup [label]")
+  .description("Remove worktree and associated branch")
+  .helpOption("-h, --help", "Display help for command")
+  .action(async (label?: string) => {
+    if (!label) {
+      // Cleanup all worktrees
+      await cleanupAllWorktrees();
+    } else {
+      // Cleanup specific worktree
+      if (!/^[a-zA-Z0-9_-]+$/.test(label)) {
+        showError(
+          "Label must contain only letters, numbers, underscores, and hyphens",
+        );
+      }
+      await cleanupWorktree(label);
+    }
+  });
+
+// Add examples to help
+program.addHelpText(
+  "after",
+  `
+Examples:
+  ${SCRIPT_NAME} new
+  # Creates worktree with auto-generated label like 'funny-hippo-42'
+
+  ${SCRIPT_NAME} new feature-auth
+  # Creates /workspaces/worktree-feature-auth and opens Claude Code
+
+  ${SCRIPT_NAME} open feature-auth
+  # Opens existing worktree in zellij (attaches or creates session)
+
+  ${SCRIPT_NAME} cleanup feature-auth
+  # Removes specific worktree and branch (prompts for merge if needed)
+
+  ${SCRIPT_NAME} cleanup
+  # Removes all worktrees and branches (prompts for each)`,
+);
+
+// Parse the command line arguments
+program.parse(process.argv);
+
+// Show help if no command provided
+if (!process.argv.slice(2).length) {
+  program.outputHelp();
   process.exit(1);
-});
+}
