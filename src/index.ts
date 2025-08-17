@@ -5,6 +5,8 @@ import { existsSync, writeFileSync } from "fs";
 import { createConnection } from "net";
 import { humanId } from "human-id";
 import { Command } from "commander";
+import zellijLayout from "./zellij-layout.kdl" with { type: "file" };
+import defaultConfig from "./default-config.ts" with { type: "file" };
 
 // AIDEV-NOTE: CLI script for creating git worktrees and opening Claude Code in them
 
@@ -352,7 +354,8 @@ program
   .description(
     "CLI tool for creating git worktrees and opening Claude Code in them",
   )
-  .version("1.0.0");
+  .version("1.0.0")
+  .option("-c, --config-dir <dir>", "Configuration directory", ".wt");
 
 // New command
 program
@@ -397,11 +400,49 @@ program
     }
   });
 
+// Init command
+program
+  .command("init")
+  .description("Initialize repository with default config files")
+  .helpOption("-h, --help", "Display help for command")
+  .action(async () => {
+    console.log("Initializing repository...");
+
+    const options = program.opts();
+    const wtDir = options.configDir;
+
+    // Create layout.kdl file
+    const layoutFile = `${wtDir}/layout.kdl`;
+    if (!existsSync(layoutFile)) {
+      Bun.write(layoutFile, Bun.file(zellijLayout as string), {
+        createPath: true,
+      });
+      console.log(`✓ Created ${layoutFile}`);
+    }
+
+    const configFile = `${wtDir}/config.ts`;
+    if (!existsSync(configFile)) {
+      Bun.write(configFile, Bun.file(defaultConfig as unknown as string), {
+        createPath: true,
+      });
+      console.log(`✓ Created ${configFile}`);
+    }
+
+    console.log("\n✓ Repository initialized successfully!");
+    console.log("You can now use 'wt new' to create worktrees.");
+  });
+
 // Add examples to help
 program.addHelpText(
   "after",
   `
 Examples:
+  ${SCRIPT_NAME} init
+  # Initialize repository with .wt/layout.kdl and .wt/config.ts
+
+  ${SCRIPT_NAME} --config-dir .my-config init
+  # Initialize repository with custom config directory
+
   ${SCRIPT_NAME} new
   # Creates worktree with auto-generated label like 'funny-hippo-42'
 
