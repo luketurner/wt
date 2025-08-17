@@ -82,19 +82,20 @@ async function hasUnmergedCommits(branch: string): Promise<boolean> {
 }
 
 /**
- * Get list of all our worktrees (those matching /workspaces/worktree-*)
+ * Get list of all our worktrees
  */
-async function getAllWorktrees(): Promise<string[]> {
+async function getAllWorktrees(configDir: string): Promise<string[]> {
   try {
     const result = await $`git worktree list --porcelain`.quiet();
     const lines = result.stdout.toString().split("\n");
     const worktrees: string[] = [];
+    const worktreesDir = `${process.cwd()}/${configDir}/worktrees/`;
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i]?.trim();
-      if (line && line.startsWith("worktree /workspaces/worktree-")) {
+      if (line && line.startsWith(`worktree ${worktreesDir}`)) {
         const worktreePath = line.substring("worktree ".length);
-        const label = worktreePath.split("/workspaces/worktree-")[1];
+        const label = worktreePath.substring(worktreesDir.length);
         if (label && label !== "") {
           worktrees.push(label);
         }
@@ -110,8 +111,8 @@ async function getAllWorktrees(): Promise<string[]> {
 /**
  * Cleanup all worktrees
  */
-async function cleanupAllWorktrees() {
-  const worktrees = await getAllWorktrees();
+async function cleanupAllWorktrees(configDir: string) {
+  const worktrees = await getAllWorktrees(configDir);
 
   if (worktrees.length === 0) {
     console.log("No worktrees found to clean up.");
@@ -130,7 +131,7 @@ async function cleanupAllWorktrees() {
 
   for (const label of worktrees) {
     console.log(`\n--- Cleaning up worktree: ${label} ---`);
-    await cleanupWorktree(label);
+    await cleanupWorktree(label, configDir);
   }
 
   console.log("\n✓ All worktrees cleaned up successfully");
@@ -139,8 +140,8 @@ async function cleanupAllWorktrees() {
 /**
  * Cleanup worktree and associated branch
  */
-async function cleanupWorktree(label: string) {
-  const worktreePath = `/workspaces/worktree-${label}`;
+async function cleanupWorktree(label: string, configDir: string) {
+  const worktreePath = `${process.cwd()}/${configDir}/worktrees/${label}`;
 
   // Check if worktree exists
   if (!existsSync(worktreePath)) {
@@ -203,8 +204,8 @@ async function cleanupWorktree(label: string) {
 /**
  * Open an existing worktree in zellij
  */
-async function openWorktree(label: string) {
-  const worktreePath = `/workspaces/worktree-${label}`;
+async function openWorktree(label: string, configDir: string) {
+  const worktreePath = `${process.cwd()}/${configDir}/worktrees/${label}`;
 
   // Check if worktree exists
   if (!existsSync(worktreePath)) {
@@ -252,7 +253,7 @@ async function openWorktree(label: string) {
 /**
  * Create a new worktree
  */
-async function createWorktree(label?: string) {
+async function createWorktree(label: string | undefined, configDir: string) {
   // Generate label if not provided
   if (!label) {
     label = humanId({
@@ -269,7 +270,7 @@ async function createWorktree(label?: string) {
     );
   }
 
-  const worktreePath = `/workspaces/worktree-${label}`;
+  const worktreePath = `${process.cwd()}/${configDir}/worktrees/${label}`;
   const envPath = `${worktreePath}/.env.local`;
 
   // Check if worktree already exists
@@ -337,7 +338,7 @@ async function createWorktree(label?: string) {
 
     if (shouldCleanup) {
       console.log("\n--- Starting automatic cleanup ---");
-      await cleanupWorktree(label);
+      await cleanupWorktree(label, configDir);
     } else {
       console.log(`Worktree '${label}' preserved at ${worktreePath}`);
     }
@@ -363,7 +364,8 @@ program
   .description("Create a new worktree and open Claude Code")
   .helpOption("-h, --help", "Display help for command")
   .action(async (label?: string) => {
-    await createWorktree(label);
+    const options = program.opts();
+    await createWorktree(label, options.configDir);
   });
 
 // Open command
@@ -377,7 +379,8 @@ program
         "Label must contain only letters, numbers, underscores, and hyphens",
       );
     }
-    await openWorktree(label);
+    const options = program.opts();
+    await openWorktree(label, options.configDir);
   });
 
 // Cleanup command
@@ -386,9 +389,10 @@ program
   .description("Remove worktree and associated branch")
   .helpOption("-h, --help", "Display help for command")
   .action(async (label?: string) => {
+    const options = program.opts();
     if (!label) {
       // Cleanup all worktrees
-      await cleanupAllWorktrees();
+      await cleanupAllWorktrees(options.configDir);
     } else {
       // Cleanup specific worktree
       if (!/^[a-zA-Z0-9_-]+$/.test(label)) {
@@ -396,7 +400,7 @@ program
           "Label must contain only letters, numbers, underscores, and hyphens",
         );
       }
-      await cleanupWorktree(label);
+      await cleanupWorktree(label, options.configDir);
     }
   });
 
@@ -447,7 +451,7 @@ Examples:
   # Creates worktree with auto-generated label like 'funny-hippo-42'
 
   ${SCRIPT_NAME} new feature-auth
-  # Creates /workspaces/worktree-feature-auth and opens Claude Code
+  # Creates .wt/worktrees/feature-auth and opens Claude Code
 
   ${SCRIPT_NAME} open feature-auth
   # Opens existing worktree in zellij (attaches or creates session)
