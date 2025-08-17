@@ -482,6 +482,35 @@ program
       console.log(`✓ Created ${configFile}`);
     }
 
+    // Handle .gitignore file
+    const gitignorePath = ".gitignore";
+    const worktreesPattern = `${wtDir}/worktrees`;
+
+    if (existsSync(gitignorePath)) {
+      // Read existing .gitignore
+      const gitignoreContent = readFileSync(gitignorePath, "utf-8");
+
+      // Check if the pattern already exists
+      const patterns = gitignoreContent.split("\n");
+      const hasPattern = patterns.some(
+        (line) => line.trim() === worktreesPattern,
+      );
+
+      if (!hasPattern) {
+        // Add the pattern to existing .gitignore
+        const newContent =
+          gitignoreContent.trimEnd() + "\n" + worktreesPattern + "\n";
+        writeFileSync(gitignorePath, newContent);
+        console.log(`✓ Added ${worktreesPattern} to existing .gitignore`);
+      } else {
+        console.log(`✓ .gitignore already contains ${worktreesPattern}`);
+      }
+    } else {
+      // Create new .gitignore with the pattern
+      writeFileSync(gitignorePath, worktreesPattern + "\n");
+      console.log(`✓ Created .gitignore with ${worktreesPattern}`);
+    }
+
     console.log("\n✓ Repository initialized successfully!");
     console.log("You can now use 'wt new' to create worktrees.");
   });
