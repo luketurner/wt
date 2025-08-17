@@ -5,5 +5,6 @@ export default {
     // Example:
     // API_KEY: "your-api-key",
     // DATABASE_URL: "your-database-url",
+    // PORT: await findAvailablePort()
   }),
 };
