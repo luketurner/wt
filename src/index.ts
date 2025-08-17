@@ -1,10 +1,11 @@
 #!/usr/bin/env bun
 
 import { $, spawn } from "bun";
-import { existsSync, writeFileSync } from "fs";
+import { existsSync, writeFileSync, readFileSync } from "fs";
 import { createConnection } from "net";
 import { humanId } from "human-id";
 import { Command } from "commander";
+import { runInNewContext } from "vm";
 import zellijLayout from "./zellij-layout.kdl" with { type: "file" };
 import defaultConfig from "./default-config.ts" with { type: "file" };
 
@@ -15,6 +16,50 @@ const SCRIPT_NAME = "worktree";
 function showError(message: string) {
   console.error(`Error: ${message}`);
   process.exit(1);
+}
+
+/**
+ * Load config from config.ts file
+ */
+function loadConfig(configDir: string): { layout: string } {
+  const configPath = `${configDir}/config.ts`;
+
+  // Check if config file exists
+  if (!existsSync(configPath)) {
+    showError(`Config file not found at ${configPath}. Run 'wt init' first.`);
+  }
+
+  try {
+    // Read the TypeScript config file
+    const configSource = readFileSync(configPath, "utf-8");
+
+    // Transpile TypeScript to JavaScript
+    const transpiler = new Bun.Transpiler({ loader: "ts" });
+    const jsCode = transpiler.transformSync(configSource);
+
+    // Create a sandbox context with module exports
+    const sandbox: any = {
+      module: { exports: {} },
+      exports: {},
+    };
+
+    // Execute the transpiled code in sandbox
+    runInNewContext(jsCode, sandbox);
+
+    // Get the default export
+    const config = sandbox.module.exports.default || sandbox.exports.default;
+
+    if (!config || !config.layout) {
+      showError(`Invalid config: missing 'layout' property in ${configPath}`);
+    }
+
+    return config;
+  } catch (error) {
+    showError(`Failed to load config from ${configPath}: ${error}`);
+  }
+
+  // This is unreachable due to showError calling process.exit
+  return { layout: "" };
 }
 
 /**
@@ -212,6 +257,10 @@ async function openWorktree(label: string, configDir: string) {
     showError(`Worktree ${worktreePath} does not exist.`);
   }
 
+  // Load config to get layout path
+  const config = loadConfig(configDir);
+  const layoutPath = `${configDir}/${config.layout}`;
+
   const sessionName = `wtt-${label}`;
 
   // Check if session already exists
@@ -234,7 +283,7 @@ async function openWorktree(label: string, configDir: string) {
       console.log(`Creating new zellij session: ${sessionName}`);
       // Create new session
       const zellijProc = spawn(
-        ["zellij", "-n", ".zellij/worktree.kdl", "-s", sessionName],
+        ["zellij", "-n", layoutPath, "-s", sessionName],
         {
           stdio: ["inherit", "inherit", "inherit"],
           cwd: worktreePath,
@@ -313,14 +362,15 @@ async function createWorktree(label: string | undefined, configDir: string) {
   console.log("Creating zellij session...");
   const sessionName = `wtt-${label}`;
 
+  // Load config to get layout path
+  const config = loadConfig(configDir);
+  const layoutPath = `${configDir}/${config.layout}`;
+
   try {
-    const zellijProc = spawn(
-      ["zellij", "-n", ".zellij/worktree.kdl", "-s", sessionName],
-      {
-        stdio: ["inherit", "inherit", "inherit"],
-        cwd: worktreePath,
-      },
-    );
+    const zellijProc = spawn(["zellij", "-n", layoutPath, "-s", sessionName], {
+      stdio: ["inherit", "inherit", "inherit"],
+      cwd: worktreePath,
+    });
 
     const exitCode = await zellijProc.exited;
 
