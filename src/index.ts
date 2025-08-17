@@ -21,7 +21,12 @@ function showError(message: string) {
 /**
  * Load config from config.ts file
  */
-function loadConfig(configDir: string): { layout: string } {
+function loadConfig(configDir: string): {
+  layout: string;
+  environment?: (ctx: {
+    findAvailablePort: typeof findAvailablePort;
+  }) => Promise<Record<string, string>>;
+} {
   const configPath = `${configDir}/config.ts`;
 
   // Check if config file exists
@@ -59,7 +64,7 @@ function loadConfig(configDir: string): { layout: string } {
   }
 
   // This is unreachable due to showError calling process.exit
-  return { layout: "" };
+  throw new Error("Could not load config");
 }
 
 /**
@@ -81,20 +86,16 @@ function isPortAvailable(port: number): Promise<boolean> {
 /**
  * Find two adjacent available ports in the 3002-4000 range
  */
-async function findAvailablePorts(): Promise<{
-  adminPort: number;
-  webhookPort: number;
-}> {
+async function findAvailablePort(): Promise<number> {
   for (let port = 3002; port < 4000; port++) {
-    const webhookAvailable = await isPortAvailable(port);
-    const adminAvailable = await isPortAvailable(port + 1);
+    const isAvailable = await isPortAvailable(port);
 
-    if (adminAvailable && webhookAvailable) {
-      return { adminPort: port + 1, webhookPort: port };
+    if (isAvailable) {
+      return port;
     }
   }
 
-  throw new Error("No adjacent ports available in range 3002-4000");
+  throw new Error("No port available in range 3002-4000");
 }
 
 /**
@@ -238,7 +239,7 @@ async function cleanupWorktree(label: string, configDir: string) {
     console.log(`✓ Deleted branch ${label}`);
 
     // delete zellij session -- removes it from list of ressurectable sessions
-    await $`zellij delete-session wtt-${label}`;
+    await $`zellij delete-session wt-${label}`;
 
     console.log("✓ Cleanup completed successfully");
   } catch (error) {
@@ -261,7 +262,7 @@ async function openWorktree(label: string, configDir: string) {
   const config = loadConfig(configDir);
   const layoutPath = `${configDir}/${config.layout}`;
 
-  const sessionName = `wtt-${label}`;
+  const sessionName = `wt-${label}`;
 
   // Check if session already exists
   try {
@@ -340,30 +341,24 @@ async function createWorktree(label: string | undefined, configDir: string) {
     }
   }
 
+  // Load config to get environment function
+  const config = loadConfig(configDir);
+
   // Find available ports and create .env.local
-  console.log("Finding available ports...");
-  let adminPort: number;
-  let webhookPort: number;
-
-  try {
-    const ports = await findAvailablePorts();
-    adminPort = ports.adminPort;
-    webhookPort = ports.webhookPort;
-
-    const envContent = `WTT_ADMIN_PORT=${adminPort}\nWTT_WEBHOOK_PORT=${webhookPort}\n`;
+  // Get environment variables from config if available
+  if (config.environment && typeof config.environment === "function") {
+    let envContent = "";
+    const envVars = await config.environment({ findAvailablePort });
+    for (const [key, value] of Object.entries(envVars)) {
+      envContent += `${key}=${value}\n`;
+    }
     writeFileSync(envPath, envContent);
-    console.log(
-      `✓ Created .env.local with ports ${adminPort} and ${webhookPort}`,
-    );
-  } catch (error) {
-    showError(`Failed to find available ports: ${error}`);
+    console.log(`✓ Created .env.local`);
   }
 
   console.log("Creating zellij session...");
-  const sessionName = `wtt-${label}`;
+  const sessionName = `wt-${label}`;
 
-  // Load config to get layout path
-  const config = loadConfig(configDir);
   const layoutPath = `${configDir}/${config.layout}`;
 
   try {
