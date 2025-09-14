@@ -26,6 +26,7 @@ function loadConfig(configDir: string): {
   environment?: (ctx: {
     findAvailablePort: typeof findAvailablePort;
   }) => Promise<Record<string, string>>;
+  setup?: (ctx: { dir: string }) => Promise<void>;
 } {
   const configPath = `${configDir}/config.ts`;
 
@@ -323,6 +324,8 @@ async function createWorktree(label: string | undefined, configDir: string) {
   const worktreePath = `${process.cwd()}/${configDir}/worktrees/${label}`;
   const envPath = `${worktreePath}/.env.local`;
 
+  const config = loadConfig(configDir);
+
   // Check if worktree already exists
   if (existsSync(worktreePath)) {
     console.log(`Worktree already exists at ${worktreePath}`);
@@ -333,16 +336,14 @@ async function createWorktree(label: string | undefined, configDir: string) {
     // Create the worktree (this will create a new branch if it doesn't exist)
     try {
       await $`git worktree add ${worktreePath} -b ${label}`;
-      await $`cp -r local ${worktreePath}/local`;
-      await $`cd ${worktreePath} && bun install`;
+      if (config.setup && typeof config.setup === "function") {
+        await config.setup({ dir: worktreePath });
+      }
       console.log(`✓ Worktree created at ${worktreePath}`);
     } catch (error) {
       showError(`Failed to create worktree: ${error}`);
     }
   }
-
-  // Load config to get environment function
-  const config = loadConfig(configDir);
 
   // Find available ports and create .env.local
   // Get environment variables from config if available
