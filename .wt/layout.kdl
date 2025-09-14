@@ -1,0 +1,13 @@
+layout {
+  pane split_direction="vertical" {
+    pane {
+      pane command="claude" {
+        args "--dangerously-skip-permissions"
+      }
+      pane command="bun" {
+        args "run" "dev"
+      }
+    }
+    pane command="lazygit"
+  }
+}
