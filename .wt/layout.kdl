@@ -4,9 +4,7 @@ layout {
       pane command="claude" {
         args "--dangerously-skip-permissions"
       }
-      pane command="bun" {
-        args "run" "dev"
-      }
+      pane command="bash"
     }
     pane command="lazygit"
   }
