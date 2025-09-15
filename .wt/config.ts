@@ -1,4 +1,4 @@
-module.exports = {
+const config: Config = {
   layout: "./layout.kdl",
   environment: async ({ findAvailablePort }) => ({
     // Add your environment variables here
@@ -12,3 +12,13 @@ module.exports = {
     await $`cd ${dir} && bun install`;
   },
 };
+
+module.exports = config;
+
+interface Config {
+  layout: string;
+  environment: (opts: {
+    findAvailablePort: () => Promise<number>;
+  }) => Promise<Record<string, string>>;
+  setup: (opts: { $: Bun.$; dir: string }) => Promise<void>;
+}
