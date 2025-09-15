@@ -26,7 +26,7 @@ function loadConfig(configDir: string): {
   environment?: (ctx: {
     findAvailablePort: typeof findAvailablePort;
   }) => Promise<Record<string, string>>;
-  setup?: (ctx: { dir: string }) => Promise<void>;
+  setup?: (ctx: { dir: string; $: Bun.$ }) => Promise<void>;
 } {
   const configPath = `${configDir}/config.ts`;
 
@@ -53,7 +53,7 @@ function loadConfig(configDir: string): {
     runInNewContext(jsCode, sandbox);
 
     // Get the default export
-    const config = sandbox.module.exports.default || sandbox.exports.default;
+    const config = sandbox.module.exports || sandbox.exports;
 
     if (!config || !config.layout) {
       showError(`Invalid config: missing 'layout' property in ${configPath}`);
@@ -337,7 +337,7 @@ async function createWorktree(label: string | undefined, configDir: string) {
     try {
       await $`git worktree add ${worktreePath} -b ${label}`;
       if (config.setup && typeof config.setup === "function") {
-        await config.setup({ dir: worktreePath });
+        await config.setup({ dir: worktreePath, $ });
       }
       console.log(`✓ Worktree created at ${worktreePath}`);
     } catch (error) {

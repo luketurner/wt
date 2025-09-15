@@ -1,4 +1,4 @@
-export default {
+module.exports = {
   layout: "./layout.kdl",
   environment: async ({ findAvailablePort }) => ({
     // Add your environment variables here
@@ -7,4 +7,8 @@ export default {
     // DATABASE_URL: "your-database-url",
     // PORT: await findAvailablePort()
   }),
+  setup: async ({ dir, $ }) => {
+    // await $`cp -r local ${dir}/local`;
+    await $`cd ${dir} && bun install`;
+  },
 };
