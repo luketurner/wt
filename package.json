@@ -1,5 +1,6 @@
 {
   "name": "@luketurner/wt",
+  "description": "A CLI tool that makes it easy to run multiple AI agents in parallel",
   "module": "src/index.ts",
   "type": "module",
   "bin": {
