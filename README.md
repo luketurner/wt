@@ -36,7 +36,7 @@ Optional, but recommended:
 
 To install `wt`, you have four options:
 
-1. Download a single-file binary from the latest release.
+1. Download a single-file binary from the [latest release](https://github.com/luketurner/wt/releases/latest).
 2. Run `bun add -g @luketurner/wt` to install globally.
 3. Run `bun add @luketurner/wt` to install just in the current project.
 4. Run `bunx @luketurner/wt` to install and run `wt` with a single command.
