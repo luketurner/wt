@@ -26,12 +26,12 @@ Dependencies:
 
 - `git`
 - `zellij`
-- `claude`
 - `bun`
 
 Optional, but recommended:
 
 - `lazygit`
+- `claude`
 - Terminal-based editor (e.g. `neovim`, `helix`)
 
 To install `wt`, you have four options:
