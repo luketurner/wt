@@ -9,8 +9,6 @@ import { runInNewContext } from "vm";
 import zellijLayout from "./zellij-layout.kdl" with { type: "file" };
 import defaultConfig from "./default-config.ts" with { type: "file" };
 
-// AIDEV-NOTE: CLI script for creating git worktrees and opening Claude Code in them
-
 const SCRIPT_NAME = "worktree";
 
 function showError(message: string) {
@@ -329,7 +327,7 @@ async function createWorktree(label: string | undefined, configDir: string) {
   // Check if worktree already exists
   if (existsSync(worktreePath)) {
     console.log(`Worktree already exists at ${worktreePath}`);
-    console.log("Opening Claude Code in existing worktree...");
+    console.log("Opening existing worktree...");
   } else {
     console.log(`Creating worktree: ${worktreePath}`);
 
@@ -399,7 +397,7 @@ const program = new Command();
 program
   .name(SCRIPT_NAME)
   .description(
-    "CLI tool for creating git worktrees and opening Claude Code in them",
+    "CLI tool for running multiple AI agents in parallel in separate Git worktrees",
   )
   .version("1.0.0")
   .option("-c, --config-dir <dir>", "Configuration directory", ".wt");
@@ -407,7 +405,7 @@ program
 // New command
 program
   .command("new [label]")
-  .description("Create a new worktree and open Claude Code")
+  .description("Create and open a new worktree session")
   .helpOption("-h, --help", "Display help for command")
   .action(async (label?: string) => {
     const options = program.opts();
@@ -526,7 +524,7 @@ Examples:
   # Creates worktree with auto-generated label like 'funny-hippo-42'
 
   ${SCRIPT_NAME} new feature-auth
-  # Creates .wt/worktrees/feature-auth and opens Claude Code
+  # Creates .wt/worktrees/feature-auth and opens the worktree in a new session
 
   ${SCRIPT_NAME} open feature-auth
   # Opens existing worktree in zellij (attaches or creates session)
