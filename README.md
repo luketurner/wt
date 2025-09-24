@@ -26,7 +26,7 @@ Dependencies:
 
 - `git`
 - `zellij`
-- `bun`
+- `bun` (unless using a [single-file binary](https://github.com/luketurner/wt/releases/latest))
 
 Optional, but recommended:
 
