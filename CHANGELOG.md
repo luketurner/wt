@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.0 (2025-09-24)
+
+- Add types to config file
+
+---
+
 ## 0.2.0 (2025-09-15)
 
 - Adjust config file format to avoid ES Module export syntax
