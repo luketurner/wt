@@ -9,7 +9,7 @@ import { runInNewContext } from "vm";
 import zellijLayout from "./zellij-layout.kdl" with { type: "file" };
 import defaultConfig from "./default-config.ts" with { type: "file" };
 
-const SCRIPT_NAME = "worktree";
+const SCRIPT_NAME = "wt";
 
 const RESERVED_PORT_CACHE = new Set();
 
