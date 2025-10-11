@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.0 (2025-10-11)
+
+- ensure multiple calls to findAvailablePort() don't return the same port
+
+---
+
 ## 0.3.1 (2025-09-24)
 
 - update CLI help text
