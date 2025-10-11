@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.1 (2025-10-11)
+
+- fix output of --version
+- fix script name in --help
+
+---
+
 ## 0.4.0 (2025-10-11)
 
 - ensure multiple calls to findAvailablePort() don't return the same port
