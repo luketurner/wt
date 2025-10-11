@@ -8,6 +8,7 @@ import { Command } from "commander";
 import { runInNewContext } from "vm";
 import zellijLayout from "./zellij-layout.kdl" with { type: "file" };
 import defaultConfig from "./default-config.ts" with { type: "file" };
+import packageJson from "../package.json";
 
 const SCRIPT_NAME = "wt";
 
@@ -173,7 +174,7 @@ async function cleanupAllWorktrees(configDir: string) {
   console.log(`Found ${worktrees.length} worktree(s): ${worktrees.join(", ")}`);
 
   const shouldProceed = await promptUser(
-    "Do you want to clean up all worktrees?",
+    "Do you want to clean up all worktrees?"
   );
   if (!shouldProceed) {
     console.log("Cleanup cancelled.");
@@ -209,7 +210,7 @@ async function cleanupWorktree(label: string, configDir: string) {
     if (hasUnmerged) {
       console.log(`Branch '${label}' has commits not merged into main.`);
       const shouldCherryPick = await promptUser(
-        "Do you want to cherry-pick them into main first?",
+        "Do you want to cherry-pick them into main first?"
       );
 
       if (shouldCherryPick) {
@@ -293,7 +294,7 @@ async function openWorktree(label: string, configDir: string) {
         {
           stdio: ["inherit", "inherit", "inherit"],
           cwd: worktreePath,
-        },
+        }
       );
 
       await zellijProc.exited;
@@ -321,7 +322,7 @@ async function createWorktree(label: string | undefined, configDir: string) {
   // Validate label (basic git branch name rules)
   if (!/^[a-zA-Z0-9_-]+$/.test(label)) {
     showError(
-      "Label must contain only letters, numbers, underscores, and hyphens",
+      "Label must contain only letters, numbers, underscores, and hyphens"
     );
   }
 
@@ -383,7 +384,7 @@ async function createWorktree(label: string | undefined, configDir: string) {
     // Prompt for automatic cleanup
     console.log("");
     const shouldCleanup = await promptUser(
-      `Do you want to clean up the worktree '${label}'?`,
+      `Do you want to clean up the worktree '${label}'?`
     );
 
     if (shouldCleanup) {
@@ -403,9 +404,9 @@ const program = new Command();
 program
   .name(SCRIPT_NAME)
   .description(
-    "CLI tool for running multiple AI agents in parallel in separate Git worktrees",
+    "CLI tool for running multiple AI agents in parallel in separate Git worktrees"
   )
-  .version("1.0.0")
+  .version(packageJson.version)
   .option("-c, --config-dir <dir>", "Configuration directory", ".wt");
 
 // New command
@@ -426,7 +427,7 @@ program
   .action(async (label: string) => {
     if (!/^[a-zA-Z0-9_-]+$/.test(label)) {
       showError(
-        "Label must contain only letters, numbers, underscores, and hyphens",
+        "Label must contain only letters, numbers, underscores, and hyphens"
       );
     }
     const options = program.opts();
@@ -447,7 +448,7 @@ program
       // Cleanup specific worktree
       if (!/^[a-zA-Z0-9_-]+$/.test(label)) {
         showError(
-          "Label must contain only letters, numbers, underscores, and hyphens",
+          "Label must contain only letters, numbers, underscores, and hyphens"
         );
       }
       await cleanupWorktree(label, options.configDir);
@@ -493,7 +494,7 @@ program
       // Check if the pattern already exists
       const patterns = gitignoreContent.split("\n");
       const hasPattern = patterns.some(
-        (line) => line.trim() === worktreesPattern,
+        (line) => line.trim() === worktreesPattern
       );
 
       if (!hasPattern) {
@@ -539,7 +540,7 @@ Examples:
   # Removes specific worktree and branch (prompts for merge if needed)
 
   ${SCRIPT_NAME} cleanup
-  # Removes all worktrees and branches (prompts for each)`,
+  # Removes all worktrees and branches (prompts for each)`
 );
 
 // Parse the command line arguments
