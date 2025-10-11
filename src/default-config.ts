@@ -19,6 +19,6 @@ interface Config {
   layout: string;
   environment: (opts: {
     findAvailablePort: () => Promise<number>;
-  }) => Promise<Record<string, string>>;
+  }) => Promise<Record<string, string | number>>;
   setup: (opts: { $: Bun.$; dir: string }) => Promise<void>;
 }
