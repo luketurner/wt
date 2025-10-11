@@ -11,6 +11,8 @@ import defaultConfig from "./default-config.ts" with { type: "file" };
 
 const SCRIPT_NAME = "worktree";
 
+const RESERVED_PORT_CACHE = new Set();
+
 function showError(message: string) {
   console.error(`Error: ${message}`);
   process.exit(1);
@@ -69,7 +71,10 @@ function loadConfig(configDir: string): {
 /**
  * Check if a port is available
  */
-function isPortAvailable(port: number): Promise<boolean> {
+async function isPortAvailable(port: number): Promise<boolean> {
+  if (RESERVED_PORT_CACHE.has(port)) {
+    return false;
+  }
   return new Promise((resolve) => {
     const server = createConnection({ port, host: "localhost" }, () => {
       server.end();
@@ -90,6 +95,7 @@ async function findAvailablePort(): Promise<number> {
     const isAvailable = await isPortAvailable(port);
 
     if (isAvailable) {
+      RESERVED_PORT_CACHE.add(port);
       return port;
     }
   }
